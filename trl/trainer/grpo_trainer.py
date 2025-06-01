@@ -368,6 +368,8 @@ class GRPOTrainer(Trainer):
         reward_processing_classes: Optional[Union[PreTrainedTokenizerBase, list[PreTrainedTokenizerBase]]] = None,
         callbacks: Optional[list[TrainerCallback]] = None,
         optimizers: tuple[Optional[torch.optim.Optimizer], Optional[torch.optim.lr_scheduler.LambdaLR]] = (None, None),
+        # unlike optimizers, passing in optimizer_cls skips need to create model + allocate devices in advance
+        optimizer_cls_and_kwargs: Optional[tuple[type[torch.optim.Optimizer], dict[str, Any]]] = None,
         peft_config: Optional["PeftConfig"] = None,
     ):
         # Args
@@ -571,6 +573,7 @@ class GRPOTrainer(Trainer):
             processing_class=processing_class,
             callbacks=callbacks,
             optimizers=optimizers,
+            optimizer_cls_and_kwargs=optimizer_cls_and_kwargs,
         )
 
         # Initialize the metrics
