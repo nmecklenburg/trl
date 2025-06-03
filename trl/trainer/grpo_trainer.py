@@ -137,6 +137,7 @@ class RepeatSampler(Sampler):
         repeat_count: int = 1,
         shuffle: bool = True,
         seed: Optional[int] = None,
+        batches_to_exclude: Optional[set[int]] = None,
     ):
         self.data_source = data_source
         self.mini_repeat_count = mini_repeat_count
@@ -145,6 +146,7 @@ class RepeatSampler(Sampler):
         self.num_samples = len(data_source)
         self.shuffle = shuffle
         self.seed = seed
+        self.batches_to_exclude = batches_to_exclude
 
         if shuffle:
             self.generator = torch.Generator()  # Create a local random generator
@@ -157,6 +159,8 @@ class RepeatSampler(Sampler):
             indexes = torch.randperm(self.num_samples, generator=self.generator).tolist()
         else:
             indexes = list(range(self.num_samples))
+        if batches_to_exclude:  # non-null, non-empty
+            indexes = [dataset_idx for step_no, dataset_idx in enumerate(indexes) if step_no not in batches_to_exclude]
 
         #    [2, 4, 3, 1, 0, 6, 5]
         # -> [[2, 4, 3], [1, 0, 6], [5]]  (batch_size = 3)
@@ -372,6 +376,7 @@ class GRPOTrainer(Trainer):
         # unlike optimizers, passing in optimizer_cls skips need to create model + allocate devices in advance
         optimizer_cls_and_kwargs: Optional[tuple[type[torch.optim.Optimizer], dict[str, Any]]] = None,
         peft_config: Optional["PeftConfig"] = None,
+        batches_to_exclude: Optional[set[int]] = None,
     ):
         # Args
         if args is None:
@@ -513,6 +518,7 @@ class GRPOTrainer(Trainer):
 
         # Datasets
         self.shuffle_dataset = args.shuffle_dataset
+        self.batches_to_exclude = batches_to_exclude
 
         if (
             isinstance(train_dataset, IterableDataset)
@@ -662,7 +668,7 @@ class GRPOTrainer(Trainer):
                 top_p=self.top_p,
                 top_k=self.top_k,
                 min_p=self.min_p,
-                bottom_p=self.bottom_p,
+                # bottom_p=self.bottom_p,
                 repetition_penalty=self.repetition_penalty,
                 cache_implementation=args.cache_implementation,
             )
@@ -775,6 +781,7 @@ class GRPOTrainer(Trainer):
             repeat_count=self.num_iterations * self.args.gradient_accumulation_steps,
             shuffle=self.shuffle_dataset,
             seed=self.args.seed,
+            batches_to_exclude=self.batches_to_exclude,
         )
 
     def _get_eval_sampler(self, eval_dataset) -> Sampler:
@@ -956,7 +963,7 @@ class GRPOTrainer(Trainer):
                         top_p=self.top_p,
                         top_k=-1 if self.top_k is None else self.top_k,
                         min_p=0.0 if self.min_p is None else self.min_p,
-                        bottom_p=self.bottom_p,
+                        # bottom_p=self.bottom_p,
                         max_tokens=self.max_completion_length,
                         guided_decoding_regex=self.guided_decoding_regex,
                     )
