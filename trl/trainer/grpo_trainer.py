@@ -501,6 +501,7 @@ class GRPOTrainer(Trainer):
         self.num_generations = args.num_generations  # = G in the GRPO paper
         self.temperature = args.temperature
         self.top_p = args.top_p
+        self.bottom_p = args.bottom_p
         self.top_k = args.top_k
         self.min_p = args.min_p
         self.repetition_penalty = args.repetition_penalty
@@ -661,6 +662,7 @@ class GRPOTrainer(Trainer):
                 top_p=self.top_p,
                 top_k=self.top_k,
                 min_p=self.min_p,
+                bottom_p=self.bottom_p,
                 repetition_penalty=self.repetition_penalty,
                 cache_implementation=args.cache_implementation,
             )
@@ -954,6 +956,7 @@ class GRPOTrainer(Trainer):
                         top_p=self.top_p,
                         top_k=-1 if self.top_k is None else self.top_k,
                         min_p=0.0 if self.min_p is None else self.min_p,
+                        bottom_p=self.bottom_p,
                         max_tokens=self.max_completion_length,
                         guided_decoding_regex=self.guided_decoding_regex,
                     )
