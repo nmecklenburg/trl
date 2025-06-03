@@ -159,8 +159,8 @@ class RepeatSampler(Sampler):
             indexes = torch.randperm(self.num_samples, generator=self.generator).tolist()
         else:
             indexes = list(range(self.num_samples))
-        if batches_to_exclude:  # non-null, non-empty
-            indexes = [dataset_idx for step_no, dataset_idx in enumerate(indexes) if step_no not in batches_to_exclude]
+        if self.batches_to_exclude:  # non-null, non-empty
+            indexes = [dataset_idx for step_no, dataset_idx in enumerate(indexes) if step_no not in self.batches_to_exclude]
 
         #    [2, 4, 3, 1, 0, 6, 5]
         # -> [[2, 4, 3], [1, 0, 6], [5]]  (batch_size = 3)
