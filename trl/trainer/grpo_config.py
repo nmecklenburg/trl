@@ -241,6 +241,13 @@ class GRPOConfig(TrainingArguments):
             "Set to 1.0 to consider all tokens."
         },
     )
+    bottom_p: float = field(
+        default=1.0,
+        metadata={
+            "help": "Float that controls cumulative probability of the bottom tokens to consider. Must be in (0, 1]."
+                    "Set to 1.0 to consider all tokens."
+        }
+    )
     top_k: Optional[int] = field(
         default=50,
         metadata={
