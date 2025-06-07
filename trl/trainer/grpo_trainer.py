@@ -377,6 +377,7 @@ class GRPOTrainer(Trainer):
         optimizer_cls_and_kwargs: Optional[tuple[type[torch.optim.Optimizer], dict[str, Any]]] = None,
         peft_config: Optional["PeftConfig"] = None,
         batches_to_exclude: Optional[set[int]] = None,
+        pass_threshold: float = 0.0,
     ):
         # Args
         if args is None:
@@ -515,6 +516,7 @@ class GRPOTrainer(Trainer):
         self.loss_type = args.loss_type
         self.scale_rewards = args.scale_rewards
         self.mask_truncated_completions = args.mask_truncated_completions
+        self.pass_threshold = pass_threshold
 
         # Datasets
         self.shuffle_dataset = args.shuffle_dataset
@@ -1151,12 +1153,21 @@ class GRPOTrainer(Trainer):
         for i, name in enumerate(self.reward_func_names):
             self._textual_logs["rewards"][name].extend(rewards_per_func[:, i].tolist())
 
+        # print("Rewards shape:", rewards.shape)
+        # print("Rewards[:10]:", rewards[:10])
+        # print("Rewards.view:", rewards.view(-1, self.num_generations))
+        # print("Advantages shape:", advantages.shape)
+        # print("Advantages[:10]:", advantages[:10])
+        # print("Mean grouped rewards shape:", mean_grouped_rewards.shape)
+        # print("Mean grouped rewards [:10]:",mean_grouped_rewards[:10])
+
         return {
             "prompt_ids": prompt_ids,
             "prompt_mask": prompt_mask,
             "completion_ids": completion_ids,
             "completion_mask": completion_mask,
             "advantages": advantages,
+            "mean_rewards": mean_grouped_rewards,
             "old_per_token_logps": old_per_token_logps,
             "ref_per_token_logps": ref_per_token_logps,
         }
@@ -1220,6 +1231,10 @@ class GRPOTrainer(Trainer):
             per_token_kl = (
                 torch.exp(ref_per_token_logps - per_token_logps) - (ref_per_token_logps - per_token_logps) - 1
             )
+
+        completion_mask[inputs["mean_rewards"] < self.pass_threshold] = 0
+        # print(inputs["rewards"] < self.pass_threshold)
+        # print(completion_mask.sum(-1))
 
         # Compute the loss
         advantages = inputs["advantages"]
